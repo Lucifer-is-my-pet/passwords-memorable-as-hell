@@ -3,12 +3,12 @@ import random
 
 
 def read_file(fname):  # выкачиваем один раз в main и обращаемся уже к массиву
-        with open(fname, 'r') as fl:
+        with open(fname, 'r', encoding="cp1251") as fl:
             return fl.readlines()
 
 
 class Password:
-    dictionary = {' ': ' ', 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh', 'з': 'z',
+    dictionary = {' ': ' ', '—': '—', '-': '-', 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh', 'з': 'z',
                   'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's',
                   'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': "'",
                   'ы': 'y', 'ь': "'", 'э': 'e', 'ю': 'yu', 'я': 'ya'}
@@ -40,8 +40,9 @@ class Password:
         splitted = self.cyrillic.split(' ')
         cutted = list()
         for i in splitted:
-            cutted.append(i[0])
-            if self.withSymbols:  # на случай, если понадобится заполнять спецсимволами
+            if i != '—':
+                cutted.append(i[0])
+            if self.withSymbols and cutted[len(cutted) - 1] != ' ':  # если понадобится заполнять спецсимволами
                 cutted.append(' ')
         return cutted
 
