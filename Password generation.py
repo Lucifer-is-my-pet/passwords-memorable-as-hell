@@ -23,6 +23,7 @@ class Password:
         self.symbolsToUse = []
         self.proverbs = read_file("proverbs.txt")
         self.numOfLines = len(self.proverbs)
+        self.thatOneLine = -1  # номер строки, откуда получили пословицу
         self.usedNumbers = set()
 
     def find_new(self):
@@ -34,6 +35,7 @@ class Password:
         for i in range(self.numOfLines):
             num = random.randint(0, self.numOfLines)
             if num not in self.usedNumbers:
+                self.thatOneLine = num
                 self.cyrillic = self.proverbs[num]
                 self.usedNumbers.append(num)
                 return self.cyrillic
@@ -43,7 +45,7 @@ class Password:
         вырезает первые буквы слов (из кириллического варианта)
         """
         splitted = self.cyrillic.split(' ')
-        p = re.compile("[,—;:]")
+        p = re.compile("[,;\-:]")
         for i in range(len(splitted)):
             if p.match(splitted[i]):
                 splitted.pop(i)
@@ -61,3 +63,51 @@ class Password:
         result = str()
         for letter in string:
             result += self.dictionary[letter]
+
+    def number_of_spaces(self):
+        result = 0
+        for i in self.translit:
+            if i == ' ':
+                result += 1
+        return result
+
+    def add_digits(self):
+        """
+        работает с транслитeрованным вариантом, добавляет цифры
+        если нет ограничения на длину, вставляет в начало и примерно в середину вместо какого-то из пробелов,
+        если есть - в начало и примерно в середину
+        две цифры получаем из манипуляций с номером строки, откуда была вытянута пословица и числом пробелов
+        ЕСЛИ ЧИСЛО СТРОК ПЕРЕВАЛИТ ЗА ТЫСЯЧУ - ПРИДЁТСЯ ПЕРЕДЕЛЫВАТЬ. ТОВАРИЩ, БУДЬ БДИТЕЛЕН
+        """
+        result = str()
+        amazingNumber = self.thatOneLine
+        if amazingNumber <= 10:
+            amazingNumber *= self.number_of_spaces()
+        elif amazingNumber > 100:
+            amazingNumber //= self.number_of_spaces()
+            if amazingNumber > 100:
+                amazingNumber //= self.number_of_spaces()
+        if len(str(amazingNumber)) != 2:
+            raise BaseException("There are not 2 numbers to insert!")
+        if self.length > 0:
+            result += str(amazingNumber // 10) + self.translit
+            for i in range(len(result)):
+                if result[i] == ' ' and i >= len(result) // 2:
+                    result[i] = str(amazingNumber % 10)
+                    break
+        else:
+            result += str(amazingNumber // 10) + self.cut()
+            num = self.length // 2 + round(random.random())
+            result = result[0:num] + str(amazingNumber % 10) + result[num:]
+
+        return result
+
+
+def main():
+    # при старте программы генерируется объект Password, который будет меняться по ходу изменения параметров и/или
+    # повторного нажатия на кнопку "Сгенерировать"
+    pass
+
+
+if __name__ == '__main__':
+    main()
