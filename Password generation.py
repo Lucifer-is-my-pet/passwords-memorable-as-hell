@@ -9,7 +9,7 @@ def read_file(fname):  # выкачиваем один раз в main и обр�
 
 
 class Password:
-    dictionary = {' ': ' ', '—': '—', '-': '-', 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+    dictionary = {' ': ' ', '-': '-', 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
                   'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p',
                   'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh',
                   'щ': 'shch', 'ъ': "'", 'ы': 'y', 'ь': "'", 'э': 'e', 'ю': 'yu', 'я': 'ya', ',': ','}
@@ -26,10 +26,10 @@ class Password:
         self.thatOneLine = -1  # номер строки, откуда получили пословицу
         self.usedNumbers = set()
 
-    def find_new(self):
+    def find_new(self):  # заполни-метод
         """
         получает в генераторе случайных чисел номер строки и извлекает соответсвующую строку из файла, помещая в
-        поле cyrillic
+        поле cyrillic и возвращает её
         номера, полученные в предыдущих попытках, фиксируются, чтобы не было повторов
         """
         for i in range(self.numOfLines):
@@ -42,7 +42,7 @@ class Password:
 
     def cut(self):
         """
-        вырезает первые буквы слов (из кириллического варианта)
+        вырезает первые буквы слов (из кириллического варианта), возвращает список
         """
         splitted = self.cyrillic.split(' ')
         p = re.compile("[,;\-:]")
@@ -56,13 +56,14 @@ class Password:
                 cutted.append(' ')
         return cutted
 
-    def transform(self, string):
+    def transform(self, string: (str, list)):  # преобразуй-метод
         """
-        преобазует кириллицу в латиницу
+        создаёт транслитерованный вариант, возвращает строку
         """
         result = str()
         for letter in string:
             result += self.dictionary[letter]
+        return result
 
     def number_of_spaces(self):
         result = 0
@@ -71,7 +72,7 @@ class Password:
                 result += 1
         return result
 
-    def add_digits(self):
+    def add_digits(self):  # преобразуй-метод
         """
         работает с транслитeрованным вариантом, добавляет цифры
         если нет ограничения на длину, вставляет в начало и примерно в середину вместо какого-то из пробелов,
@@ -88,7 +89,7 @@ class Password:
             if amazingNumber > 100:
                 amazingNumber //= self.number_of_spaces()
         if len(str(amazingNumber)) != 2:
-            raise BaseException("There are not 2 numbers to insert!")
+            raise BaseException("There are no 2 digits to insert!")
         if self.length > 0:
             result += str(amazingNumber // 10) + self.translit
             for i in range(len(result)):
@@ -96,10 +97,21 @@ class Password:
                     result[i] = str(amazingNumber % 10)
                     break
         else:
-            result += str(amazingNumber // 10) + self.cut()
+            result += str(amazingNumber // 10) + self.transform(self.cut())
             num = self.length // 2 + round(random.random())
             result = result[0:num] + str(amazingNumber % 10) + result[num:]
 
+        return result
+
+    def upper(self):  # преобразуй-метод
+        """
+        работает с транслитерованным вариантом, возвращает строку
+        пока вариант для полной пословицы!
+        """
+        temp = self.translit.split(' ')
+        for i in range(len(temp)):
+            temp[i] = temp[i][:len(temp[i]) - 1] + temp[i][-1].upper()
+        result = ' '.join(temp)
         return result
 
 
