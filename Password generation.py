@@ -90,11 +90,11 @@ class Password:
                 amazingNumber //= self.number_of_spaces()
         if len(str(amazingNumber)) != 2:
             raise BaseException("There are no 2 digits to insert!")
-        if self.length > 0:
+        if self.length == 0:  # если органичения нет
             result += str(amazingNumber // 10) + self.translit
             for i in range(len(result)):
                 if result[i] == ' ' and i >= len(result) // 2:
-                    result[i] = str(amazingNumber % 10)
+                    result[i] = str(amazingNumber % 10)  # так веь нельзя!
                     break
         else:
             result += str(amazingNumber // 10) + self.transform(self.cut())
@@ -118,6 +118,11 @@ class Password:
 def main():
     # при старте программы генерируется объект Password, который будет меняться по ходу изменения параметров и/или
     # повторного нажатия на кнопку "Сгенерировать"
+    # вытягиваем пословицу, помещая в поле кириллицы
+    # транслитеруем, помещаем в поле транслита
+    # если есть ограничение на длину, обрезаем кириллический вариант и транслитеруем
+    # если нужны цифры, добавляются, с учётом предыдущего параметра
+    # то же с символами
     pass
 
 
