@@ -40,29 +40,34 @@ class Password:
                 self.usedNumbers.append(num)
                 return self.cyrillic
 
-    def cut(self):
+    def cut(self):  # преобразуй-метод
         """
         вырезает первые буквы слов (из кириллического варианта), возвращает список
         """
         splitted = self.cyrillic.split(' ')
         p = re.compile("[,;\-:]")
-        for i in range(len(splitted)):
-            if p.match(splitted[i]):
-                splitted.pop(i)
-        cutted = list()
+        fixed = list()
         for i in splitted:
+            if p.search(i) is None:
+                fixed.append(i)
+            elif not p.match(i):
+                fixed.append(i[:p.search(i).start()])
+
+        cutted = list()
+        for i in fixed:
             cutted.append(i[0])
-            if self.withSymbols and cutted[len(cutted) - 1] != ' ':  # если понадобится заполнять спецсимволами
-                cutted.append(' ')
         return cutted
 
-    def transform(self, string: (str, list)):  # преобразуй-метод
+    def transform(self, string):  # преобразуй-заполни-метод
         """
-        создаёт транслитерованный вариант, возвращает строку
+        создаёт транслитерованный вариант, помещает его в поле translit, если там пусто, возвращает строку
+        :string - str, list
         """
         result = str()
         for letter in string:
             result += self.dictionary[letter]
+        if not len(self.translit):
+            self.translit = result
         return result
 
     def number_of_spaces(self):
@@ -78,7 +83,7 @@ class Password:
         если нет ограничения на длину, вставляет в начало и примерно в середину вместо какого-то из пробелов,
         если есть - в начало и примерно в середину
         две цифры получаем из манипуляций с номером строки, откуда была вытянута пословица и числом пробелов
-        ЕСЛИ ЧИСЛО СТРОК ПЕРЕВАЛИТ ЗА ТЫСЯЧУ - ПРИДЁТСЯ ПЕРЕДЕЛЫВАТЬ. ТОВАРИЩ, БУДЬ БДИТЕЛЕН
+        ЕСЛИ ЧИСЛО СТРОК ФАЙЛА С ПОСЛОВИЦАМИ ПЕРЕВАЛИТ ЗА ТЫСЯЧУ - ПРИДЁТСЯ ПЕРЕДЕЛЫВАТЬ. ТОВАРИЩ, БУДЬ БДИТЕЛЕН
         """
         result = str()
         amazingNumber = self.thatOneLine
@@ -94,7 +99,7 @@ class Password:
             result += str(amazingNumber // 10) + self.translit
             for i in range(len(result)):
                 if result[i] == ' ' and i >= len(result) // 2:
-                    result[i] = str(amazingNumber % 10)  # так веь нельзя!
+                    result = result[:i] + str(amazingNumber % 10) + result[i + 1:]
                     break
         else:
             result += str(amazingNumber // 10) + self.transform(self.cut())
@@ -113,6 +118,9 @@ class Password:
             temp[i] = temp[i][:len(temp[i]) - 1] + temp[i][-1].upper()
         result = ' '.join(temp)
         return result
+
+    def add_symbols(self):  # преобразуй-метод
+        pass
 
 
 def main():
