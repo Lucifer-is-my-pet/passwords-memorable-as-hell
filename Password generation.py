@@ -119,8 +119,31 @@ class Password:
         result = ' '.join(temp)
         return result
 
-    def add_symbols(self):  # преобразуй-метод
-        pass
+    def add_symbols(self, string, num):  # преобразуй-метод
+        """
+        могут быть: 1. скобки, 2. точки-зпт-воскл, 3. астериск, слэши, двоеточие, доллар, процент, кавычки
+        :num - int, номер группы, если пользователь выбрал, а не указал конкретные. 0 - не указал
+        :string - строка, с которой работаем
+        ПРОВЕРЯТЬ ПОЛНУЮ ПОСЛОВИЦУ НА НАЛИЧИЕ СИМВОЛОВ И СООТВЕТСТВИЕ ИХ ДОПУСТИМОМУ НАБОРУ
+        ВОЗМОЖНО, ДОБАВЛЯТЬ НУЖНО БУДЕТ МЕНЬШЕЮ ИЛИ ПРИДЁТСЯ ЧТО-ТО УДАЛИТЬ
+        """
+        result = str()
+        if num == 0:
+            pass  # работаем с заданным набором
+        elif num == 1:
+            brackets = ["()", "[]", "{}"]
+            typeOfBrackets = random.randint(1, 3)
+            result = brackets[typeOfBrackets][0] + string + brackets[typeOfBrackets][1]
+        elif num == 2:
+            punctuation = ['.', '!', "...", '?']
+            typeOfPunctuation = random.randint(1, 4)
+            result = string + punctuation[typeOfPunctuation]
+        elif num == 3:
+            symbols = ['*', '/', '\\', '+', '"', '$', '%', '-']
+            typeOfSymbol = random.randint(1, 8)
+            result = symbols[typeOfSymbol] + string + symbols[typeOfSymbol]
+
+        return result
 
 
 def main():
@@ -128,6 +151,7 @@ def main():
     # повторного нажатия на кнопку "Сгенерировать"
     # вытягиваем пословицу, помещая в поле кириллицы
     # транслитеруем, помещаем в поле транслита
+    # добавляем заглавные буквы, работаем с преобразованной строкой
     # если есть ограничение на длину, обрезаем кириллический вариант и транслитеруем
     # если нужны цифры, добавляются, с учётом предыдущего параметра
     # то же с символами
