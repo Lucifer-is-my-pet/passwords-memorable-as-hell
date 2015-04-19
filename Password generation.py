@@ -4,7 +4,7 @@ import re
 
 
 def read_file(fname):  # выкачиваем один раз в main и обращаемся уже к массиву
-        with open(fname, 'r', encoding="cp1251") as fl:
+        with open(fname, 'r', encoding="cp1251") as fl:  # TODO юникод
             return fl.readlines()
 
 
@@ -12,7 +12,7 @@ class Password:
     dictionary = {' ': ' ', '-': '-', 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
                   'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p',
                   'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh',
-                  'щ': 'shch', 'ъ': "'", 'ы': 'y', 'ь': "'", 'э': 'e', 'ю': 'yu', 'я': 'ya', ',': ','}
+                  'щ': 'shch', 'ъ': "'", 'ы': 'y', 'ь': "'", 'э': 'e', 'ю': 'yu', 'я': 'ya', ',': ',', ':': ':'}
 
     def __init__(self):
         self.cyrillic = str()
@@ -109,13 +109,13 @@ class Password:
                     result = result[:i] + str(amazingNumber % 10) + result[i + 1:]
                     break
         else:
-            result += str(amazingNumber // 10) + self.transform(self.cut())
+            result += str(amazingNumber // 10) + self.translit
             num = self.length // 2 + round(random.random())
             result = result[0:num] + str(amazingNumber % 10) + result[num:]
 
         return result
 
-    def upper(self):  # преобразуй-метод
+    def upper(self):  # TODO преобразуй-метод
         """
         работает с транслитерованным вариантом, возвращает строку
         (пока вариант только для полной пословицы)
@@ -127,7 +127,7 @@ class Password:
         result = ' '.join(temp)
         return result
 
-    def add_symbols(self, string, num):  # преобразуй-метод
+    def add_symbols(self, string, num):  # TODO преобразуй-метод
         """
         :num - int, номер группы, если пользователь выбрал из предложенных, а не указал конкретные. 0 - не указал
         (проверять полную пословицу на наличие символов и соответствие их допустимому набору
@@ -147,7 +147,27 @@ def main():
     # если есть ограничение на длину, обрезаем кириллический вариант и транслитеруем (добавляем заглавные буквы)
     # если нужны цифры, добавляются, с учётом предыдущего параметра
     # то же с символами
-    pass
+
+    newPassword = Password()
+    cyrillic = newPassword.find_new()  # "Сгенерировать"
+    translit = newPassword.transform(cyrillic)
+    uppered = newPassword.upper()
+    if newPassword.length != 0:
+        translit = newPassword.transform(newPassword.cut())  # поле translit обновилось
+        # TODO добавление заглавных
+    if newPassword.withDigits:
+        withDigits = newPassword.add_digits()
+    if newPassword.withSymbols:
+        pass
+    else:  # избавляемся от символов
+        splitted = translit.split(' ')
+        translit = ''.join(splitted)
+        p = re.compile("[^A-Za-z0-9]")
+        if len(p.findall(translit)):
+            found = set(p.findall(translit))
+            for i in found:
+                splitted = translit.split(i)
+                translit = ''.join(splitted)
 
 
 if __name__ == '__main__':
