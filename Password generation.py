@@ -4,7 +4,7 @@ import re
 
 
 def read_file(fname):  # выкачиваем один раз в main и обращаемся уже к массиву
-        with open(fname, 'r', encoding="cp1251") as fl:  # TODO юникод
+        with open(fname, 'r', encoding="utf-8") as fl:
             return fl.readlines()
 
 
@@ -115,16 +115,22 @@ class Password:
 
         return result
 
-    def upper(self):  # TODO преобразуй-метод
+    def up(self):  # преобразуй-метод
         """
-        работает с транслитерованным вариантом, возвращает строку
-        (пока вариант только для полной пословицы)
+        работает с транслитерованным вариантом
+        в полном варианте увеличивает последнюю букву каждого слова
+        в обрезанном - первую, последнюю и примерно в середине
         :return - str
         """
-        temp = self.translit.split(' ')
-        for i in range(len(temp)):
-            temp[i] = temp[i][:len(temp[i]) - 1] + temp[i][-1].upper()
-        result = ' '.join(temp)
+        if self.length == 0:
+            temp = self.translit.split(' ')
+            for i in range(len(temp)):
+                temp[i] = temp[i][:len(temp[i]) - 1] + temp[i][-1].upper()
+            result = ' '.join(temp)
+        else:
+            result = self.translit[0].upper() + self.translit[1:-1] + self.translit[-1].upper()
+            result = result[:len(result) // 2] + result[len(result) // 2].upper() + result[(len(result) // 2) + 1:]
+
         return result
 
     def add_symbols(self, string, num):  # TODO преобразуй-метод
@@ -151,10 +157,10 @@ def main():
     newPassword = Password()
     cyrillic = newPassword.find_new()  # "Сгенерировать"
     translit = newPassword.transform(cyrillic)
-    uppered = newPassword.upper()
     if newPassword.length != 0:
         translit = newPassword.transform(newPassword.cut())  # поле translit обновилось
-        # TODO добавление заглавных
+        uppered = newPassword.up()
+    uppered = newPassword.up()
     if newPassword.withDigits:
         withDigits = newPassword.add_digits()
     if newPassword.withSymbols:
