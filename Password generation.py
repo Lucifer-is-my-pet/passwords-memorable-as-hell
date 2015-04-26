@@ -12,7 +12,8 @@ class Password:
     dictionary = {' ': ' ', '-': '-', 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
                   'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p',
                   'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh',
-                  'щ': 'shch', 'ъ': "'", 'ы': 'y', 'ь': "'", 'э': 'e', 'ю': 'yu', 'я': 'ya', ',': ',', ':': ':'}
+                  'щ': 'shch', 'ъ': "'", 'ы': 'y', 'ь': "'", 'э': 'e', 'ю': 'yu', 'я': 'ya', ',': ',', ':': ':',
+                  '(': '(', ')': ')'}
 
     def __init__(self):
         self.cyrillic = str()
@@ -31,20 +32,20 @@ class Password:
         получает в генераторе случайных чисел номер строки и извлекает соответсвующую строку из файла, помещая в
         поле cyrillic
         номера, полученные в предыдущих попытках, фиксируются, чтобы не было повторов
-        :return - str
+        :return: str
         """
         for i in range(self.numOfLines):
             num = random.randint(0, self.numOfLines)
             if num not in self.usedNumbers:
                 self.thatOneLine = num
                 self.cyrillic = self.proverbs[num]
-                self.usedNumbers.append(num)
+                self.usedNumbers.add(num)
                 return self.cyrillic
 
     def cut(self):  # преобразуй-метод
         """
         вырезает первые буквы слов из кириллического варианта
-        :return - list
+        :return: list
         """
         splitted = self.cyrillic.split(' ')
         p = re.compile("[,;\-:]")
@@ -63,19 +64,21 @@ class Password:
     def transform(self, string):  # преобразуй-заполни-метод
         """
         создаёт транслитерованный вариант, помещает его в поле translit, если там пусто
-        :string - str, list
-        :return - str
+        :string: str, list
+        :return: str
         """
         result = str()
         for letter in string:
-            result += self.dictionary[letter]
+            if letter == '\n':
+                break
+            result += self.dictionary[letter.lower()]
         if not len(self.translit):
             self.translit = result
         return result
 
     def number_of_spaces(self):
         """
-        :return - int
+        :return: int
         """
         result = 0
         for i in self.translit:
@@ -90,7 +93,7 @@ class Password:
         если есть - в начало и примерно в середину
         две цифры получаем из манипуляций с номером строки, откуда была вытянута пословица и числом пробелов
         (если число строк файла с пословицами перевалит за тысячу - придётся переделывать)
-        :return - str
+        :return: str
         """
         result = str()
         amazingNumber = self.thatOneLine
@@ -115,12 +118,12 @@ class Password:
 
         return result
 
-    def up(self):  # преобразуй-метод
+    def up(self):  # TODO преобразуй-метод КОСЯЧИТ, ЕСЛИ ЕСТЬ СИМВОЛЫ В КОНЦЕ СЛОВА
         """
         работает с транслитерованным вариантом
         в полном варианте увеличивает последнюю букву каждого слова
         в обрезанном - первую, последнюю и примерно в середине
-        :return - str
+        :return: str
         """
         if self.length == 0:
             temp = self.translit.split(' ')
@@ -135,17 +138,30 @@ class Password:
 
     def add_symbols(self, string, num):  # TODO преобразуй-метод
         """
-        :num - int, номер группы, если пользователь выбрал из предложенных, а не указал конкретные. 0 - не указал
+        :num: int, номер группы, если пользователь выбрал из предложенных, а не указал конкретные. 0 - не указал
         (проверять полную пословицу на наличие символов и соответствие их допустимому набору
         возможно, добавлять нужно будет меньше или придётся что-то удалить)
-        :string - str, строка, с которой работаем
-        :return - str
+        :string: str, строка, с которой работаем
+        :return: str
         """
         pass
 
+    def clear(self):
+        """
+        сбрасывает часть настроек после повторного нажатия "Сгенерировать"
+        :return: None
+        """
+        self.cyrillic = str()
+        self.translit = str()
+        self.length = 0
+        self.withDigits = False
+        self.withSymbols = False
+        self.symbolsToUse = []
+        self.thatOneLine = -1
+
 
 def main():
-    # при старте программы генерируется объект Password, который будет меняться по ходу изменения параметров и/или
+    # при старте программы генерируется объект Password, который будет меняться после ходу изменения параметров и/или
     # повторного нажатия на кнопку "Сгенерировать"
     # вытягиваем пословицу, помещая в поле кириллицы
     # транслитеруем, помещаем в поле транслита
@@ -161,6 +177,9 @@ def main():
         translit = newPassword.transform(newPassword.cut())  # поле translit обновилось
         uppered = newPassword.up()
     uppered = newPassword.up()
+    withDig = input("С циферками? ")
+    if withDig == "да":
+        newPassword.withDigits = True
     if newPassword.withDigits:
         withDigits = newPassword.add_digits()
     if newPassword.withSymbols:
@@ -174,6 +193,10 @@ def main():
             for i in found:
                 splitted = translit.split(i)
                 translit = ''.join(splitted)
+    print(cyrillic)
+    print(translit)
+    print(uppered)
+    print(withDigits)
 
 
 if __name__ == '__main__':
