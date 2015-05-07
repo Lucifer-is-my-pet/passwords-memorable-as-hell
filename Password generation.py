@@ -121,7 +121,7 @@ class Password:
 
         return result
 
-    def up(self):  # преобразуй-метод TODO КОСЯЧИТ, ЕСЛИ ЕСТЬ СИМВОЛЫ В КОНЦЕ СЛОВА
+    def up(self):  # преобразуй-метод
         """
         работает с транслитерованным вариантом
         в полном варианте увеличивает последнюю букву каждого слова
@@ -134,6 +134,8 @@ class Password:
             for i in range(len(temp)):
                 if p.match(temp[i][-1]):
                     temp[i] = temp[i][:len(temp[i]) - 1] + temp[i][-1].upper()
+                else:  # последний символ - не буква
+                    temp[i] = temp[i][:len(temp[i]) - 2] + temp[i][-2].upper() + temp[i][-1]
             result = ' '.join(temp)
         else:
             result = self.translit[0].upper() + self.translit[1:-1] + self.translit[-1].upper()
@@ -202,9 +204,11 @@ def main():  # TODO определиться с апострофом
 
     print(cyrillic)
     print(translit)
-    print(uppered)
+    spl = uppered.split(' ')
+    print(''.join(spl))
     if withDig == "да":
-        print(withDigits)
+        spl = withDigits.split(' ')
+        print(''.join(spl))
 
 
 if __name__ == '__main__':
