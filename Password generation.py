@@ -50,17 +50,12 @@ class Password:
         вырезает первые буквы слов из кириллического варианта
         :return: list
         """
-        splitted = self.cyrillic.split(' ')
-        p = re.compile("[,;\-:]")
-        fixed = list()
-        for i in splitted:
-            if p.search(i) is None:
-                fixed.append(i)
-            elif not p.match(i):
-                fixed.append(i[:p.search(i).start()])
+        p = re.compile('\W+')
+        splitted = p.split(self.cyrillic)
+        # print(self.cyrillic, splitted)
 
         cutted = list()
-        for i in fixed:
+        for i in splitted:
             cutted.append(i[0])
         return cutted
 
@@ -83,10 +78,8 @@ class Password:
         """
         :return: int
         """
-        result = 0
-        for i in self.translit:
-            if i == ' ':
-                result += 1
+        p = re.compile('[ ]')
+        result = len(p.findall(self.translit))
         return result
 
     def add_digits(self):  # преобразуй-метод
@@ -107,7 +100,8 @@ class Password:
             if amazingNumber > 100:
                 amazingNumber //= self.number_of_spaces()
         if len(str(amazingNumber)) != 2:
-            raise BaseException("There are no 2 digits to insert!")
+            # raise BaseException("There are no 2 digits to insert!")
+            amazingNumber + random.randint(1, 9) * 10
         if self.length == 0:  # если органичения нет
             result += str(amazingNumber // 10) + self.translit
             for i in range(len(result)):
@@ -133,9 +127,12 @@ class Password:
             p = re.compile('[a-z]')
             for i in range(len(temp)):
                 if p.match(temp[i][-1]):
-                    temp[i] = temp[i][:len(temp[i]) - 1] + temp[i][-1].upper()
-                else:  # последний символ - не буква
-                    temp[i] = temp[i][:len(temp[i]) - 2] + temp[i][-2].upper() + temp[i][-1]
+                    temp[i] = temp[i][:-1] + temp[i][-1].upper()
+                elif p.match(temp[i][-2]):  # последний символ - не буква
+                    try:
+                        temp[i] = temp[i][:-2] + temp[i][-2].upper() + temp[i][-1]
+                    except IndexError as ie:
+                        print(i, temp, ie.args[0])
             result = ' '.join(temp)
         else:
             result = self.translit[0].upper() + self.translit[1:-1] + self.translit[-1].upper()
@@ -176,6 +173,7 @@ def main():  # TODO определиться с апострофом
     # если есть ограничение на длину, обрезаем кириллический вариант и транслитеруем (добавляем заглавные буквы)
     # если нужны цифры, добавляются, с учётом предыдущего параметра
     # то же с символами
+    # при выводе пробелы "съедаются", впароле их быть не должно
 
     newPassword = Password()
     cyrillic = newPassword.find_new()  # "Сгенерировать"
