@@ -13,7 +13,7 @@ class Password:
                   'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p',
                   'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh',
                   'щ': 'shch', 'ъ': "'", 'ы': 'y', 'ь': "'", 'э': 'e', 'ю': 'yu', 'я': 'ya', ',': ',', ':': ':',
-                  '(': '(', ')': ')'}
+                  '(': '(', ')': ')', '?': '?'}
 
     def __init__(self):
         self.cyrillic = str()
@@ -37,7 +37,7 @@ class Password:
         for i in range(self.numOfLines):
             num = random.randint(0, self.numOfLines)
             if num not in self.usedNumbers:
-                self.thatOneLine = num
+                self.thatOneLine = num + 1
                 temp = self.proverbs[num]
                 ind = temp.find('\n')
                 if ind > 0:
@@ -82,6 +82,15 @@ class Password:
         result = len(p.findall(self.translit))
         return result
 
+    def last_match(self, string):
+        """
+        возвращает индекс последнего вхождения букв в строке
+        :param string: слово пословицы
+        :return: int
+        """
+        p = re.compile("[a-zA-Z]")
+        return [m.start() for m in p.finditer(string)][-1]
+
     def add_digits(self):  # преобразуй-метод
         """
         работает с транслитeрованным вариантом, добавляет цифры
@@ -93,15 +102,20 @@ class Password:
         """
         result = str()
         amazingNumber = self.thatOneLine
-        if amazingNumber <= 10:
-            amazingNumber *= self.number_of_spaces()
-        elif amazingNumber > 100:
-            amazingNumber //= self.number_of_spaces()
-            if amazingNumber > 100:
-                amazingNumber //= self.number_of_spaces()
-        if len(str(amazingNumber)) != 2:
-            # raise BaseException("There are no 2 digits to insert!")
-            amazingNumber + random.randint(1, 9) * 10
+        spaces = self.number_of_spaces()
+        if amazingNumber < 10:
+            amazingNumber *= spaces
+            if len(str(amazingNumber)) != 2:
+                amazingNumber //= 10
+        elif amazingNumber >= 100:
+            if spaces == 1:
+                spaces += 1
+            count = 0
+            while len(str(amazingNumber)) != 2:
+                count += 1
+                amazingNumber //= spaces
+                if count > 5:
+                    raise BaseException("Я зациклился. Номер сейчас:" + str(amazingNumber) + "пробелов:" + str(spaces))
         if self.length == 0:  # если органичения нет
             result += str(amazingNumber // 10) + self.translit
             for i in range(len(result)):
@@ -123,16 +137,19 @@ class Password:
         :return: str
         """
         if self.length == 0:
-            temp = self.translit.split(' ')
-            p = re.compile('[a-z]')
-            for i in range(len(temp)):
-                if p.match(temp[i][-1]):
-                    temp[i] = temp[i][:-1] + temp[i][-1].upper()
-                elif p.match(temp[i][-2]):  # последний символ - не буква
-                    try:
-                        temp[i] = temp[i][:-2] + temp[i][-2].upper() + temp[i][-1]
-                    except IndexError as ie:
-                        print(i, temp, ie.args[0])
+            splitted = self.translit.split(' ')
+            temp = list()
+            p = re.compile('[a-zA-Z]')
+            for i in range(len(splitted)):
+                if p.search(splitted[i]):  # попалось не тире
+                    ind = self.last_match(splitted[i])
+                    # if ind == 0 or len(splitted[i]) == 1:
+                    #     print("Одно слово!", splitted[i][:ind] + splitted[i][ind].upper())
+                    temp.append(splitted[i][:ind] + splitted[i][ind].upper())
+                    if ind != len(splitted[i]) - 1:  # в конце слова есть другие символы
+                        temp[i] += splitted[i][ind + 1:]
+                else:
+                    temp.append(splitted[i])
             result = ' '.join(temp)
         else:
             result = self.translit[0].upper() + self.translit[1:-1] + self.translit[-1].upper()
