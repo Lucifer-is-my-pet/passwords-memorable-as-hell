@@ -4,8 +4,15 @@ import re
 
 
 def read_file(fname):  # выкачиваем один раз в main и обращаемся уже к массиву
-        with open(fname, 'r', encoding="utf-8") as fl:
-            return fl.readlines()
+    with open(fname, 'r', encoding="utf-8") as fl:
+        return fl.readlines()
+
+
+def number_of_words(string):
+    splitted = string.split(' ')
+    while splitted.find('-') > 0:
+        splitted.remove('-')
+    return len(splitted)
 
 
 class Password:
@@ -18,7 +25,8 @@ class Password:
     def __init__(self):
         self.cyrillic = str()
         self.translit = str()
-        self.length = 0  # требуемая длина пароля
+        self.min = -1
+        self.max = -1
         self.withDigits = False
         self.withSymbols = False
         self.symbolsToUse = []
@@ -32,17 +40,31 @@ class Password:
         получает в генераторе случайных чисел номер строки и извлекает соответсвующую строку из файла, помещая в
         поле cyrillic
         номера, полученные в предыдущих попытках, фиксируются, чтобы не было повторов
+        прежде чем добавить пословицу, метод проверяет, соответствует ли она ограничениям
         :return: str
         """
         for i in range(self.numOfLines):
             num = random.randint(0, self.numOfLines)
             if num not in self.usedNumbers:
-                self.thatOneLine = num + 1
                 temp = self.proverbs[num]
                 ind = temp.find('\n')
                 if ind > 0:
-                    self.cyrillic = temp[:ind]
+                    temp = temp[:ind]
+                if (self.max != -1) and (number_of_words(temp) > self.max) and (not self.withDigits) and (not self.withSymbols):
+                    continue
+                elif (self.max != -1) and ((number_of_words(temp) + 4) > self.max) and self.withDigits and self.withSymbols:
+                    continue
+                elif (self.max != -1) and ((number_of_words(temp) + 2) > self.max) and (self.withDigits or self.withSymbols):
+                    continue
+                if (self.min != -1) and (number_of_words(temp) < self.max) and (not self.withDigits) and (not self.withSymbols):
+                    continue
+                elif (self.min != -1) and ((number_of_words(temp) - 4) < self.max) and self.withDigits and self.withSymbols:
+                    continue
+                elif (self.min != -1) and ((number_of_words(temp) - 2) < self.max) and (self.withDigits or self.withSymbols):
+                    continue
+                self.cyrillic = temp
                 self.usedNumbers.add(num)
+                self.thatOneLine = num + 1
                 return self.cyrillic
 
     def cut(self):  # преобразуй-метод
@@ -116,7 +138,7 @@ class Password:
                 amazingNumber //= spaces
                 if count > 5:
                     raise BaseException("Я зациклился. Номер сейчас:" + str(amazingNumber) + "пробелов:" + str(spaces))
-        if self.length == 0:  # если органичения нет
+        if self.max == -1:  # если органичения нет
             result += str(amazingNumber // 10) + self.translit
             for i in range(len(result)):
                 if result[i] == ' ' and i >= len(result) // 2:
@@ -124,7 +146,7 @@ class Password:
                     break
         else:
             result += str(amazingNumber // 10) + self.translit
-            num = self.length // 2 + round(random.random())
+            num = len(self.translit) // 2 + round(random.random())
             result = result[0:num] + str(amazingNumber % 10) + result[num:]
 
         return result
@@ -136,7 +158,7 @@ class Password:
         в обрезанном - первую, последнюю и примерно в середине
         :return: str
         """
-        if self.length == 0:
+        if self.max == -1:
             splitted = self.translit.split(' ')
             temp = list()
             p = re.compile('[a-zA-Z]')
@@ -174,7 +196,8 @@ class Password:
         """
         self.cyrillic = str()
         self.translit = str()
-        self.length = 0
+        self.min = -1
+        self.max = -1
         self.withDigits = False
         self.withSymbols = False
         self.symbolsToUse = []
