@@ -35,6 +35,9 @@ class Password:
         self.thatOneLine = -1  # номер строки, откуда получили пословицу
         self.usedNumbers = set()
 
+    def __len__(self):
+        return len(self.translit)
+
     def find_new(self):  # заполни-метод
         """
         получает в генераторе случайных чисел номер строки и извлекает соответсвующую строку из файла, помещая в
@@ -43,8 +46,10 @@ class Password:
         прежде чем добавить пословицу, метод проверяет, соответствует ли она ограничениям
         :return: str
         """
+        if len(self.usedNumbers) == self.numOfLines:
+            raise BaseException("Все попытки получить пароль исчерпаны! Вы король кликанья!")
         for i in range(self.numOfLines):
-            num = random.randint(0, self.numOfLines)
+            num = round(random.uniform(0, self.numOfLines))
             if num not in self.usedNumbers:
                 temp = self.proverbs[num]
                 ind = temp.find('\n')
@@ -87,13 +92,18 @@ class Password:
         :string: str, list
         :return: str
         """
-        result = str()
+        temp = str()
         for letter in string:
             if letter == '\n':
                 break
-            result += self.dictionary[letter.lower()]
-        if not len(self.translit):
-            self.translit = result
+            temp += self.dictionary[letter.lower()]
+        if not len(self):
+            self.translit = temp
+
+        result = str()
+        for i in temp:
+            if i in self.symbolsToUse or i.isalpha() or i == ' ':
+                result += i
         return result
 
     def number_of_spaces(self):
@@ -146,7 +156,7 @@ class Password:
                     break
         else:
             result += str(amazingNumber // 10) + self.translit
-            num = len(self.translit) // 2 + round(random.random())
+            num = len(self) // 2 + round(random.random())
             result = result[0:num] + str(amazingNumber % 10) + result[num:]
 
         return result
@@ -204,7 +214,7 @@ class Password:
         self.thatOneLine = -1
 
 
-def main():  # TODO определиться с апострофом
+def main():
     # при старте программы генерируется объект Password, который будет меняться после ходу изменения параметров и/или
     # повторного нажатия на кнопку "Сгенерировать"
     # вытягиваем пословицу, помещая в поле кириллицы
@@ -218,7 +228,7 @@ def main():  # TODO определиться с апострофом
     newPassword = Password()
     cyrillic = newPassword.find_new()  # "Сгенерировать"
     translit = newPassword.transform(cyrillic)
-    if newPassword.length != 0:
+    if len(newPassword) != 0:
         translit = newPassword.transform(newPassword.cut())  # поле translit обновилось
         uppered = newPassword.up()
     uppered = newPassword.up()
