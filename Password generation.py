@@ -12,7 +12,7 @@ def read_file(fname):  # выкачиваем один раз в main и обр�
 
 def number_of_words(string):
     splitted = string.split(' ')
-    while splitted.find('-') > 0:
+    while '-' in splitted:
         splitted.remove('-')
     return len(splitted)
 
@@ -54,7 +54,7 @@ class Password:
         if len(self.usedNumbers) == self.numOfLines:
             raise BaseException("Все попытки получить пароль исчерпаны! Вы король кликанья!")
         for i in range(self.numOfLines):
-            num = round(random.uniform(0, self.numOfLines))
+            num = round(random.uniform(0, self.numOfLines - 1))
             if num not in self.usedNumbers:
                 temp = self.proverbs[num]
                 ind = temp.find('\n')
@@ -66,11 +66,11 @@ class Password:
                     continue
                 elif (self.max != -1) and ((number_of_words(temp) + 2) > self.max) and (self.withDigits or self.withSymbols):
                     continue
-                if (self.min != -1) and (number_of_words(temp) < self.max) and (not self.withDigits) and (not self.withSymbols):
+                if (self.min != -1) and (number_of_words(temp) < self.min) and (not self.withDigits) and (not self.withSymbols):
                     continue
-                elif (self.min != -1) and ((number_of_words(temp) - 4) < self.max) and self.withDigits and self.withSymbols:
+                elif (self.min != -1) and ((number_of_words(temp) - 4) < self.min) and self.withDigits and self.withSymbols:
                     continue
-                elif (self.min != -1) and ((number_of_words(temp) - 2) < self.max) and (self.withDigits or self.withSymbols):
+                elif (self.min != -1) and ((number_of_words(temp) - 2) < self.min) and (self.withDigits or self.withSymbols):
                     continue
                 self.cyrillic = temp
                 self.usedNumbers.add(num)
@@ -98,26 +98,27 @@ class Password:
         :return: str
         """
         temp = str()
-        for letter in string:
-            if letter == '\n':
-                break
-            temp += self.dictionary[letter.lower()]
+        try:
+            for letter in string:
+                if letter == '\n':
+                    break
+                temp += self.dictionary[letter.lower()]
+        except TypeError:
+            print(self.translit, 'is not iterable', self.cyrillic)
 
         result = str()
         for i in temp:
-            if i in self.symbolsToUse or i.isalpha():
+            if i in self.symbolsToUse or i.isalpha() or i == ' ':
                 result += i
         if not len(self):
             self.translit = result
-        # return result
+        return result
 
     def number_of_spaces(self):
         """
         :return: int
         """
-        p = re.compile('[ ]')
-        result = len(p.findall(self.translit))
-        return result
+        return number_of_words(self.cyrillic) - 1
 
     def last_match(self, string):
         """
@@ -130,12 +131,9 @@ class Password:
 
     def add_digits(self):  # преобразуй-метод
         """
-        работает с транслитeрованным вариантом, добавляет цифры
-        если нет ограничения на длину, вставляет в начало и примерно в середину вместо какого-то из пробелов,
-        если есть - в начало и примерно в середину
+        работает с транслитeрованным вариантом, добавляет цифры в начало и в конец пароля
         две цифры получаем из манипуляций с номером строки, откуда была вытянута пословица и числом пробелов
         (если число строк файла с пословицами перевалит за тысячу - придётся переделывать)
-        :return: str
         """
         result = str()
         amazingNumber = self.thatOneLine
@@ -150,30 +148,22 @@ class Password:
             count = 0
             while len(str(amazingNumber)) != 2:
                 count += 1
+                if spaces == 0:
+                    print(self.translit)
                 amazingNumber //= spaces
                 if count > 5:
-                    raise BaseException("Я зациклился. Номер сейчас:" + str(amazingNumber) + "пробелов:" + str(spaces))
-        if self.max == -1:  # если органичения нет
-            result += str(amazingNumber // 10) + self.translit
-            for i in range(len(result)):
-                if result[i] == ' ' and i >= len(result) // 2:
-                    result = result[:i] + str(amazingNumber % 10) + result[i + 1:]
-                    break
-        else:
-            result += str(amazingNumber // 10) + self.translit
-            num = len(self) // 2 + round(random.random())
-            result = result[0:num] + str(amazingNumber % 10) + result[num:]
+                    raise BaseException("Я зациклился. Номер сейчас: " + str(amazingNumber) + ", пробелов: " + str(spaces))
 
-        return result
+        result += str(amazingNumber // 10) + self.translit + str(amazingNumber % 10)
+
+        self.translit = result
 
     def up(self):  # преобразуй-метод
         """
-        работает с транслитерованным вариантом
+        работает с транслитерованным вариантом (может содержать только буквы и пробелы, а может - тире, зпт и апострофы)
         в полном варианте увеличивает последнюю букву каждого слова
         в обрезанном - первую, последнюю и примерно в середине
-        :return: str
         """
-        print("UP")
         if self.max == -1:
             splitted = self.translit.split(' ')
             temp = list()
@@ -198,13 +188,37 @@ class Password:
 
     def add_symbols(self):  # преобразуй-метод TODO
         """
-        :num: int, номер группы, если пользователь выбрал из предложенных, а не указал конкретные. 0 - не указал
-        (проверять полную пословицу на наличие символов и соответствие их допустимому набору
-        возможно, добавлять нужно будет меньше или придётся что-то удалить)
-        :string: str, строка, с которой работаем
+        добавляет спец. символы в пароль
         :return: str
         """
-        pass
+        result = str()
+        counter = 0
+        for letter in self.translit:
+            if letter in self.symbolsToUse:
+                counter += 1
+        if counter >= 2:  # символов уже достаточно
+            return
+        elif counter == 1 and len(self.symbolsToUse) > 1:
+            # исключить уже использованный символ
+            temp = list(self.symbolsToUse)
+            thatSymbol = set(temp) & set(self.translit)
+            temp.remove(thatSymbol)
+            temp = str(temp)
+            ind = round(random.uniform(0, len(temp) - 1))
+            toUse = temp[ind]
+            result = toUse.join(self.translit.split(' '))
+        elif counter == 1 and len(self.symbolsToUse) == 1:
+            return
+        else:  # могут быть скобки, тогда лучше обрамить ими
+            ind1 = round(random.uniform(0, len(self.symbolsToUse) - 1))
+            ind2 = round(random.uniform(0, len(self.symbolsToUse) - 1))
+            if ind1 == ind2 and len(self.symbolsToUse) > 1:
+                ind2 = round(random.uniform(0, len(self.symbolsToUse) - 1))
+            toUse1 = self.symbolsToUse[ind1]
+            toUse2 = self.symbolsToUse[ind2]
+            result = toUse1.join(self.translit.split(' '))
+            result = toUse2 + result + toUse2
+        return result
 
 
 class Window(QtGui.QWidget):
@@ -277,17 +291,24 @@ class Window(QtGui.QWidget):
                 (not self.checkMax.isChecked() and self.inputMax.text()):
             QtGui.QMessageBox.critical(self, 'Ошибка', "Не отмечено, что в пароле есть ограничение на длину")
             return
+        if (self.checkMin.isChecked() and not self.inputMin.text()) or\
+                (self.checkMax.isChecked() and not self.inputMax.text()):
+            QtGui.QMessageBox.critical(self, 'Ошибка', "Не указано значение ограничения на длину пароля")
+            return
         if not self.checkSymbols.isChecked() and self.inputSymbols.text():
             QtGui.QMessageBox.critical(self, 'Ошибка', "Не отмечено, что в пароле должны содержаться спец. символы")
             return
         self.myPreciousPassword.withDigits = self.checkDigits.isChecked()
         self.myPreciousPassword.withSymbols = self.checkSymbols.isChecked()
-        if self.myPreciousPassword.withSymbols:
-            self.myPreciousPassword.symbolsToUse = self.inputSymbols.text().split(' ')
+        self.myPreciousPassword.symbolsToUse = self.inputSymbols.text()
         if self.checkMin.isChecked():
-            self.myPreciousPassword.min = self.inputMin.text()
+            self.myPreciousPassword.min = int(self.inputMin.text())
+        else:
+            self.myPreciousPassword.min = -1
         if self.checkMax.isChecked():
-            self.myPreciousPassword.max = self.inputMax.text()
+            self.myPreciousPassword.max = int(self.inputMax.text())
+        else:
+            self.myPreciousPassword.min = -1
 
         cyrillic = self.myPreciousPassword.find_new()
         self.labelPrompting.setText(cyrillic)
@@ -295,7 +316,7 @@ class Window(QtGui.QWidget):
             self.myPreciousPassword.translit = str()
         self.myPreciousPassword.transform(cyrillic)
         if self.myPreciousPassword.max > 0:
-            self.myPreciousPassword.transform(self.myPreciousPassword.cut())
+            self.myPreciousPassword.translit = self.myPreciousPassword.transform(self.myPreciousPassword.cut())
         if self.checkUp.isChecked():
             self.myPreciousPassword.up()
             # print("после up", self.myPreciousPassword)
