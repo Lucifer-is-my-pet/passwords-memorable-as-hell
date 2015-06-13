@@ -17,6 +17,17 @@ def number_of_words(string):
     return len(splitted)
 
 
+def once_true(lst):
+    counter = 0
+    for i in lst:
+        if i == True:
+            counter += 1
+    if counter > 1:
+        return False
+    else:
+        return True
+
+
 class Password:
     dictionary = {' ': ' ', '-': '-', 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
                   'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p',
@@ -197,27 +208,55 @@ class Password:
             if letter in self.symbolsToUse:
                 counter += 1
         if counter >= 2:  # символов уже достаточно
-            return
+            return self.translit
         elif counter == 1 and len(self.symbolsToUse) > 1:
             # исключить уже использованный символ
             temp = list(self.symbolsToUse)
-            thatSymbol = set(temp) & set(self.translit)
+            thatSymbol = (set(temp) & set(self.translit)).pop()
             temp.remove(thatSymbol)
-            temp = str(temp)
+            temp = ''.join(temp)
             ind = round(random.uniform(0, len(temp) - 1))
             toUse = temp[ind]
             result = toUse.join(self.translit.split(' '))
         elif counter == 1 and len(self.symbolsToUse) == 1:
-            return
+            return self.translit
         else:  # могут быть скобки, тогда лучше обрамить ими
-            ind1 = round(random.uniform(0, len(self.symbolsToUse) - 1))
-            ind2 = round(random.uniform(0, len(self.symbolsToUse) - 1))
-            if ind1 == ind2 and len(self.symbolsToUse) > 1:
-                ind2 = round(random.uniform(0, len(self.symbolsToUse) - 1))
-            toUse1 = self.symbolsToUse[ind1]
-            toUse2 = self.symbolsToUse[ind2]
+            temp = list(self.symbolsToUse)
+            ind1 = ind2 = ind3 = 0
+            toUse2 = toUse3 = str()
+            openBreaks = "([{<"
+            openBreaksPresent = [False for x in range(4)]
+            closeBreaks = ")]}>"
+            closeBreaksPresent = [False for x in range(4)]
+            for i in temp:
+                if i in openBreaks:
+                    openBreaksPresent[openBreaks.index(i)] = True
+                elif i in closeBreaks:
+                    closeBreaksPresent[closeBreaks.index(i)] = True
+            if True in openBreaksPresent and True in closeBreaksPresent:
+                if once_true(openBreaksPresent):  # если один вид скобок
+                    toUse2 = openBreaks[openBreaksPresent.index(True)]
+                    toUse3 = closeBreaks[closeBreaksPresent.index(True)]
+                    temp.remove(toUse2)
+                    temp.remove(toUse3)
+                else:  # если несколько видов скобок
+                    indexes = [x for x in range(4) if openBreaksPresent[x] is True]
+                    ind = round(random.uniform(0, len(indexes) - 1))
+                    toUse2 = openBreaks[indexes[ind]]
+                    toUse3 = closeBreaks[indexes[ind]]
+                    temp.remove(toUse2)
+                    temp.remove(toUse3)
+            else:
+                ind2 = round(random.uniform(0, len(temp) - 1))
+                toUse2 = temp[ind2]
+                toUse3 = toUse2
+            ind1 = round(random.uniform(0, len(temp) - 1))
+            while temp[ind1] == toUse2 and len(temp) > 1:
+                    ind1 = round(random.uniform(0, len(temp) - 1))
+            toUse1 = temp[ind1]
             result = toUse1.join(self.translit.split(' '))
-            result = toUse2 + result + toUse2
+            result = toUse2 + result + toUse3
+        self.translit = result
         return result
 
 
@@ -231,11 +270,11 @@ class Window(QtGui.QWidget):
 
         self.generate = QtGui.QPushButton("Сгенерировать", self)
         self.generate.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(self.generate, QtCore.SIGNAL('clicked()'), self.prnt)
+        self.connect(self.generate, QtCore.SIGNAL('clicked()'), self.generation)
         self.setFocus()
 
         self.titlePrompting = QtGui.QLabel("Подсказка:")
-        self.labelPrompting = QtGui.QLabel("")  # setText()
+        self.labelPrompting = QtGui.QLabel("")
         self.labelPrompting.setAlignment(QtCore.Qt.AlignHCenter)
         self.labelPrompting.setStyleSheet('background-color: #FFFAFA; font-size: 14px;')
         self.titlePassword = QtGui.QLabel("Пароль:")
@@ -285,8 +324,7 @@ class Window(QtGui.QWidget):
         self.grid.addWidget(self.generate, 9, 1, 1, 2)
         self.setLayout(self.grid)
 
-    def prnt(self):
-        # проверить чекбоксы и поля
+    def generation(self):
         if (not self.checkMin.isChecked() and self.inputMin.text()) or\
                 (not self.checkMax.isChecked() and self.inputMax.text()):
             QtGui.QMessageBox.critical(self, 'Ошибка', "Не отмечено, что в пароле есть ограничение на длину")
@@ -298,6 +336,7 @@ class Window(QtGui.QWidget):
         if not self.checkSymbols.isChecked() and self.inputSymbols.text():
             QtGui.QMessageBox.critical(self, 'Ошибка', "Не отмечено, что в пароле должны содержаться спец. символы")
             return
+
         self.myPreciousPassword.withDigits = self.checkDigits.isChecked()
         self.myPreciousPassword.withSymbols = self.checkSymbols.isChecked()
         self.myPreciousPassword.symbolsToUse = self.inputSymbols.text()
@@ -308,7 +347,7 @@ class Window(QtGui.QWidget):
         if self.checkMax.isChecked():
             self.myPreciousPassword.max = int(self.inputMax.text())
         else:
-            self.myPreciousPassword.min = -1
+            self.myPreciousPassword.max = -1
 
         cyrillic = self.myPreciousPassword.find_new()
         self.labelPrompting.setText(cyrillic)
@@ -319,10 +358,8 @@ class Window(QtGui.QWidget):
             self.myPreciousPassword.translit = self.myPreciousPassword.transform(self.myPreciousPassword.cut())
         if self.checkUp.isChecked():
             self.myPreciousPassword.up()
-            # print("после up", self.myPreciousPassword)
         if self.myPreciousPassword.withDigits:
             self.myPreciousPassword.add_digits()
-            # print("после цифр", self.myPreciousPassword)
         if self.myPreciousPassword.withSymbols:
             self.myPreciousPassword.add_symbols()
         if not ' ' in self.myPreciousPassword.symbolsToUse:
