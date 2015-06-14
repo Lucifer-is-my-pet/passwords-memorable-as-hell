@@ -5,22 +5,95 @@ from PyQt4 import QtGui, QtCore
 import sys
 
 
+class PasswordsError(Exception):
+    def __init__(self, string):
+        self.string = string
+
+    def __str__(self):
+        return self.string
+
+dictionary = {' ': ' ', '-': '-', 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+              'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r',
+              'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch',
+              'ъ': "'", 'ы': 'y', 'ь': "'", 'э': 'e', 'ю': 'yu', 'я': 'ya', ',': ',', ':': ':', '?': '?'}
+
+
 def read_file(fname):  # выкачиваем один раз в main и обращаемся уже к массиву
     with open(fname, 'r', encoding="utf-8") as fl:
         return fl.readlines()
 
 
-def number_of_words(string):
-    splitted = string.split(' ')
-    while '-' in splitted:
-        splitted.remove('-')
-    return len(splitted)
+def cut_first_letters(string):  # преобразуй-метод
+    """
+    вырезает первые буквы слов из кириллического варианта
+    :return: list
+    """
+    p = re.compile('\W+')
+    splitted = p.split(string)
+    # print(string, splitted)
+
+    cutted = list()
+    for i in splitted:
+        cutted.append(i[0])
+    return cutted
+
+
+def transliterate(string, symbolsToUse):  # преобразуй-заполни-метод
+    """
+    создаёт транслитерованный вариант строки
+    :string: str, list
+    :return: str
+    """
+    temp = str()
+    for letter in string:
+        if letter == '\n':
+            break
+        temp += dictionary[letter.lower()]
+    # print(self.translit, 'is not iterable', self.cyrillic)
+
+    result = str()
+    for i in temp:
+        if i in symbolsToUse or i.isalpha() or i == ' ':
+            result += i
+    # if not len(self):
+    # self.translit = result
+    return result
+
+
+def number_of_letters(string):
+    """
+    :param string:
+    :return: int: число букв в транслитерованном варианте предполагаемой пословицы
+    """
+    splitted = cut_first_letters(string)
+    translitted = transliterate(splitted, "")
+    return len(translitted)
+
+
+def critical_number_of_repetitions(string):
+    """
+    критичное число повторов: символ встречается больше 3-х раз или есть как минимум два различных повторяющихся символа
+    :param string:
+    :return: есть ли в предполагаемом пароле критичное число повторов
+    """
+    reps = {letter: 0 for letter in set(string)}
+    for letter in string:
+        reps[letter] += 1
+    counter = 0
+    for item in list(reps.values()):
+        if item > 3:
+            return True
+        elif item > 2:
+            counter += 1
+    if counter > 1:
+        return True
+    return False
 
 
 def once_true(lst):
     counter = 0
     for i in lst:
-        if i == True:
+        if i is True:
             counter += 1
     if counter > 1:
         return False
@@ -29,12 +102,6 @@ def once_true(lst):
 
 
 class Password:
-    dictionary = {' ': ' ', '-': '-', 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
-                  'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p',
-                  'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh',
-                  'щ': 'shch', 'ъ': "'", 'ы': 'y', 'ь': "'", 'э': 'e', 'ю': 'yu', 'я': 'ya', ',': ',', ':': ':',
-                  '(': '(', ')': ')', '?': '?'}
-
     def __init__(self):
         self.cyrillic = str()
         self.translit = str()
@@ -63,7 +130,7 @@ class Password:
         :return: str
         """
         if len(self.usedNumbers) == self.numOfLines:
-            raise BaseException("Все попытки получить пароль исчерпаны! Вы король кликанья!")
+            raise PasswordsError("Все попытки получить пароль исчерпаны! Вы король кликанья!")
         for i in range(self.numOfLines):
             num = round(random.uniform(0, self.numOfLines - 1))
             if num not in self.usedNumbers:
@@ -71,65 +138,44 @@ class Password:
                 ind = temp.find('\n')
                 if ind > 0:
                     temp = temp[:ind]
-                if (self.max != -1) and (number_of_words(temp) > self.max) and (not self.withDigits) and (not self.withSymbols):
+
+                if (self.max != -1) and self.max <= 12 and critical_number_of_repetitions(temp):
                     continue
-                elif (self.max != -1) and ((number_of_words(temp) + 4) > self.max) and self.withDigits and self.withSymbols:
+
+                if (self.max != -1) and (number_of_letters(temp) > self.max) and (not self.withDigits) and \
+                        (not self.withSymbols):
                     continue
-                elif (self.max != -1) and ((number_of_words(temp) + 2) > self.max) and (self.withDigits or self.withSymbols):
+                elif (self.max != -1) and ((number_of_letters(temp) + 4) > self.max) and self.withDigits and \
+                        self.withSymbols:
                     continue
-                if (self.min != -1) and (number_of_words(temp) < self.min) and (not self.withDigits) and (not self.withSymbols):
+                elif (self.max != -1) and ((number_of_letters(temp) + 2) > self.max) and (self.withDigits or self.withSymbols):
                     continue
-                elif (self.min != -1) and ((number_of_words(temp) - 4) < self.min) and self.withDigits and self.withSymbols:
+                if (self.min != -1) and (number_of_letters(temp) < self.min) and (not self.withDigits) and \
+                        (not self.withSymbols):
                     continue
-                elif (self.min != -1) and ((number_of_words(temp) - 2) < self.min) and (self.withDigits or self.withSymbols):
+                elif (self.min != -1) and ((number_of_letters(temp) - 4) < self.min) and self.withDigits and \
+                        self.withSymbols:
                     continue
+                elif (self.min != -1) and ((number_of_letters(temp) - 2) < self.min) and (self.withDigits or self.withSymbols):
+                    continue
+
                 self.cyrillic = temp
                 self.usedNumbers.add(num)
                 self.thatOneLine = num + 1
                 return self.cyrillic
 
-    def cut(self):  # преобразуй-метод
-        """
-        вырезает первые буквы слов из кириллического варианта
-        :return: list
-        """
-        p = re.compile('\W+')
-        splitted = p.split(self.cyrillic)
-        # print(self.cyrillic, splitted)
-
-        cutted = list()
-        for i in splitted:
-            cutted.append(i[0])
-        return cutted
-
-    def transform(self, string):  # преобразуй-заполни-метод
-        """
-        создаёт транслитерованный вариант, помещает его в поле translit, если там пусто
-        :string: str, list
-        :return: str
-        """
-        temp = str()
-        try:
-            for letter in string:
-                if letter == '\n':
-                    break
-                temp += self.dictionary[letter.lower()]
-        except TypeError:
-            print(self.translit, 'is not iterable', self.cyrillic)
-
-        result = str()
-        for i in temp:
-            if i in self.symbolsToUse or i.isalpha() or i == ' ':
-                result += i
-        if not len(self):
-            self.translit = result
-        return result
-
     def number_of_spaces(self):
         """
         :return: int
         """
-        return number_of_words(self.cyrillic) - 1
+        temp = str()
+        for letter in self.cyrillic:
+            if letter in self.symbolsToUse or letter.isalpha() or letter == ' ':
+                temp += letter
+
+        p = re.compile('[ ]')
+        result = len(p.findall(temp))
+        return result
 
     def last_match(self, string):
         """
@@ -144,7 +190,6 @@ class Password:
         """
         работает с транслитeрованным вариантом, добавляет цифры в начало и в конец пароля
         две цифры получаем из манипуляций с номером строки, откуда была вытянута пословица и числом пробелов
-        (если число строк файла с пословицами перевалит за тысячу - придётся переделывать)
         """
         result = str()
         amazingNumber = self.thatOneLine
@@ -160,13 +205,13 @@ class Password:
             while len(str(amazingNumber)) != 2:
                 count += 1
                 if spaces == 0:
-                    print(self.translit)
+                    raise PasswordsError("В пароле нет пробелов: " + self.translit)
                 amazingNumber //= spaces
                 if count > 5:
-                    raise BaseException("Я зациклился. Номер сейчас: " + str(amazingNumber) + ", пробелов: " + str(spaces))
+                    raise PasswordsError(
+                        "Я зациклился. Номер сейчас: " + str(amazingNumber) + ", пробелов: " + str(spaces))
 
         result += str(amazingNumber // 10) + self.translit + str(amazingNumber % 10)
-
         self.translit = result
 
     def up(self):  # преобразуй-метод
@@ -183,7 +228,7 @@ class Password:
                 if p.search(splitted[i]):  # попалось не тире
                     ind = self.last_match(splitted[i])
                     # if ind == 0 or len(splitted[i]) == 1:
-                    #     print("Одно слово!", splitted[i][:ind] + splitted[i][ind].upper())
+                    # print("Одно слово!", splitted[i][:ind] + splitted[i][ind].upper())
                     temp.append(splitted[i][:ind] + splitted[i][ind].upper())
                     if ind != len(splitted[i]) - 1:  # в конце слова есть другие символы
                         temp[i] += splitted[i][ind + 1:]
@@ -194,10 +239,9 @@ class Password:
             result = self.translit[0].upper() + self.translit[1:-1] + self.translit[-1].upper()
             result = result[:len(result) // 2] + result[len(result) // 2].upper() + result[(len(result) // 2) + 1:]
 
-        # return result
         self.translit = result
 
-    def add_symbols(self):  # преобразуй-метод TODO
+    def add_symbols(self):  # преобразуй-метод
         """
         добавляет спец. символы в пароль
         :return: str
@@ -252,12 +296,12 @@ class Password:
                 toUse3 = toUse2
             ind1 = round(random.uniform(0, len(temp) - 1))
             while temp[ind1] == toUse2 and len(temp) > 1:
-                    ind1 = round(random.uniform(0, len(temp) - 1))
+                ind1 = round(random.uniform(0, len(temp) - 1))
             toUse1 = temp[ind1]
             result = toUse1.join(self.translit.split(' '))
             result = toUse2 + result + toUse3
         self.translit = result
-        return result
+        # return result
 
 
 class Window(QtGui.QWidget):
@@ -278,7 +322,7 @@ class Window(QtGui.QWidget):
         self.labelPrompting.setAlignment(QtCore.Qt.AlignHCenter)
         self.labelPrompting.setStyleSheet('background-color: #FFFAFA; font-size: 14px;')
         self.titlePassword = QtGui.QLabel("Пароль:")
-        self.labelPassword = QtGui.QLabel("")
+        self.labelPassword = QtGui.QLineEdit("")
         self.labelPassword.setAlignment(QtCore.Qt.AlignHCenter)
         self.labelPassword.setStyleSheet('background-color: #FFFAFA; font-size: 14px;')
 
@@ -325,11 +369,11 @@ class Window(QtGui.QWidget):
         self.setLayout(self.grid)
 
     def generation(self):
-        if (not self.checkMin.isChecked() and self.inputMin.text()) or\
+        if (not self.checkMin.isChecked() and self.inputMin.text()) or \
                 (not self.checkMax.isChecked() and self.inputMax.text()):
             QtGui.QMessageBox.critical(self, 'Ошибка', "Не отмечено, что в пароле есть ограничение на длину")
             return
-        if (self.checkMin.isChecked() and not self.inputMin.text()) or\
+        if (self.checkMin.isChecked() and not self.inputMin.text()) or \
                 (self.checkMax.isChecked() and not self.inputMax.text()):
             QtGui.QMessageBox.critical(self, 'Ошибка', "Не указано значение ограничения на длину пароля")
             return
@@ -349,13 +393,19 @@ class Window(QtGui.QWidget):
         else:
             self.myPreciousPassword.max = -1
 
-        cyrillic = self.myPreciousPassword.find_new()
+        try:
+            cyrillic = self.myPreciousPassword.find_new()
+        except PasswordsError as nmpe:
+            QtGui.QMessageBox.critical(self, 'Ошибка', str(nmpe))
+            self.close()
+
         self.labelPrompting.setText(cyrillic)
         if self.myPreciousPassword.translit:
             self.myPreciousPassword.translit = str()
-        self.myPreciousPassword.transform(cyrillic)
+        self.myPreciousPassword.translit = transliterate(cyrillic, self.myPreciousPassword.symbolsToUse)
         if self.myPreciousPassword.max > 0:
-            self.myPreciousPassword.translit = self.myPreciousPassword.transform(self.myPreciousPassword.cut())
+            self.myPreciousPassword.translit = transliterate(cut_first_letters(self.myPreciousPassword.cyrillic),
+                                                             self.myPreciousPassword.symbolsToUse)
         if self.checkUp.isChecked():
             self.myPreciousPassword.up()
         if self.myPreciousPassword.withDigits:
@@ -369,23 +419,21 @@ class Window(QtGui.QWidget):
 
 
 def main():
+    # при старте программы генерируется объект Password, который будет меняться после
+    # повторного нажатия на кнопку "Сгенерировать"
+    # вытягиваем пословицу, помещая в поле кириллицы
+    # транслитеруем, помещаем в поле транслита
+    # добавляем заглавные буквы, работаем с преобразованной строкой
+    # если есть ограничение на длину, обрезаем кириллический вариант и транслитеруем (добавляем заглавные буквы)
+    # если нужны цифры, добавляются, с учётом предыдущего параметра
+    # то же с символами
+    # при выводе пробелы "съедаются", если их нет в списке допустимых символов
+
     newPassword = Password()
     app = QtGui.QApplication(sys.argv)
     win = Window(newPassword)
     win.show()
     app.exec()
-
-
-# def main():
-#     # при старте программы генерируется объект Password, который будет меняться после
-#     # повторного нажатия на кнопку "Сгенерировать"
-#     # вытягиваем пословицу, помещая в поле кириллицы
-#     # транслитеруем, помещаем в поле транслита
-#     # добавляем заглавные буквы, работаем с преобразованной строкой
-#     # если есть ограничение на длину, обрезаем кириллический вариант и транслитеруем (добавляем заглавные буквы)
-#     # если нужны цифры, добавляются, с учётом предыдущего параметра
-#     # то же с символами
-#     # при выводе пробелы "съедаются", если их нет в списке допустимых символов
 
 if __name__ == '__main__':
     main()
