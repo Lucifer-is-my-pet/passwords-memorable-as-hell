@@ -16,6 +16,9 @@ dictionary = {' ': ' ', '-': '-', 'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', '�
               'з': 'z', 'и': 'i', 'й': 'j', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r',
               'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch',
               'ъ': "'", 'ы': 'y', 'ь': "'", 'э': 'e', 'ю': 'yu', 'я': 'ya', ',': ',', ':': ':', '?': '?'}
+w = re.compile('\W+')
+sp = re.compile('[ ]')
+alph = re.compile("[a-zA-Z]")
 
 
 def read_file(fname):  # выкачиваем один раз в main и обращаемся уже к массиву
@@ -28,8 +31,7 @@ def cut_first_letters(string):  # преобразуй-метод
     вырезает первые буквы слов из кириллического варианта
     :return: list
     """
-    p = re.compile('\W+')
-    splitted = p.split(string)
+    splitted = w.split(string)
     # print(string, splitted)
 
     cutted = list()
@@ -173,8 +175,7 @@ class Password:
             if letter in self.symbolsToUse or letter.isalpha() or letter == ' ':
                 temp += letter
 
-        p = re.compile('[ ]')
-        result = len(p.findall(temp))
+        result = len(sp.findall(temp))
         return result
 
     def last_match(self, string):
@@ -183,8 +184,7 @@ class Password:
         :param string: слово пословицы
         :return: int
         """
-        p = re.compile("[a-zA-Z]")
-        return [m.start() for m in p.finditer(string)][-1]
+        return [m.start() for m in alph.finditer(string)][-1]
 
     def add_digits(self):  # преобразуй-метод
         """
@@ -223,9 +223,8 @@ class Password:
         if self.max == -1:
             splitted = self.translit.split(' ')
             temp = list()
-            p = re.compile('[a-zA-Z]')
             for i in range(len(splitted)):
-                if p.search(splitted[i]):  # попалось не тире
+                if alph.search(splitted[i]):  # попалось не тире
                     ind = self.last_match(splitted[i])
                     # if ind == 0 or len(splitted[i]) == 1:
                     # print("Одно слово!", splitted[i][:ind] + splitted[i][ind].upper())
